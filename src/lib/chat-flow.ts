@@ -40,12 +40,18 @@ export const chatSteps: Record<ChatStep, StepConfig> = {
     message:
       "Quem é o público-alvo? Descreva brevemente (Ex: empreendedores iniciantes, mães que trabalham de casa, profissionais de TI...)",
     field: "targetAudience",
-    nextStep: "mainBenefit",
+    nextStep: "headline",
   },
-  mainBenefit: {
+  headline: {
     message:
-      "Qual o principal benefício ou transformação que seu produto oferece? (Ex: Faturar 10k/mês, Perder 10kg em 30 dias, Dominar inglês em 6 meses...)",
-    field: "mainBenefit",
+      'Agora vamos montar o texto do criativo! Qual será a **Headline** (título principal)? (Ex: "Fature 10K por mês", "Transforme sua vida hoje"...)',
+    field: "headline",
+    nextStep: "subheadline",
+  },
+  subheadline: {
+    message:
+      'Qual será a **Subheadline** (subtítulo)? (Ex: "O método comprovado por +5.000 alunos", "Sem precisar de experiência prévia"...)',
+    field: "subheadline",
     nextStep: "tone",
   },
   tone: {
@@ -74,7 +80,7 @@ export const chatSteps: Record<ChatStep, StepConfig> = {
     nextStep: "cta",
   },
   cta: {
-    message: "Qual a chamada para ação (CTA) principal?",
+    message: "Qual o texto do **botão CTA** (chamada para ação)?",
     options: [
       "Compre Agora",
       "Inscreva-se Grátis",
@@ -84,6 +90,12 @@ export const chatSteps: Record<ChatStep, StepConfig> = {
       "Comece Hoje",
     ],
     field: "cta",
+    nextStep: "textPosition",
+  },
+  textPosition: {
+    message: "Onde o texto deve ficar posicionado na imagem?",
+    options: ["Parte Superior", "Parte Inferior"],
+    field: "textPosition",
     nextStep: "additionalInfo",
   },
   additionalInfo: {
@@ -119,6 +131,12 @@ export const chatSteps: Record<ChatStep, StepConfig> = {
     ],
     field: "formats",
     multiSelect: true,
+    nextStep: "quantity",
+  },
+  quantity: {
+    message: "Quantas variações de cada combinação você deseja gerar?",
+    options: ["1 variação", "2 variações", "3 variações"],
+    field: "quantity",
     nextStep: "confirm",
   },
   confirm: {
@@ -164,18 +182,26 @@ export function mapFormatLabelsToIds(labels: string[]): string[] {
   return labels.map((l) => formatIdMap[l] || l.toLowerCase());
 }
 
+export function parseQuantity(label: string): number {
+  const match = label.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 1;
+}
+
 export function formatBriefingSummary(data: Record<string, string | string[]>): string {
   const labels: Record<string, string> = {
     productName: "Produto",
     productType: "Tipo",
     targetAudience: "Público-Alvo",
-    mainBenefit: "Benefício Principal",
+    headline: "Headline",
+    subheadline: "Subheadline",
     tone: "Tom de Comunicação",
     colors: "Cores",
-    cta: "CTA",
+    cta: "Botão CTA",
+    textPosition: "Posição do Texto",
     additionalInfo: "Info Adicional",
     styles: "Estilos Visuais",
     formats: "Formatos",
+    quantity: "Variações",
   };
 
   return Object.entries(data)

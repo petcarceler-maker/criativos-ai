@@ -10,13 +10,23 @@ export interface BriefingData {
   productName: string;
   productType: string;
   targetAudience: string;
-  mainBenefit: string;
+  headline: string;
+  subheadline: string;
   tone: string;
   colors: string[];
   cta: string;
+  textPosition: "top" | "bottom";
+  quantity: number;
   additionalInfo: string;
   styles: string[];
   formats: string[];
+}
+
+export interface TextOverlay {
+  headline: string;
+  subheadline: string;
+  cta: string;
+  textPosition: "top" | "bottom";
 }
 
 export interface GeneratedImage {
@@ -24,8 +34,10 @@ export interface GeneratedImage {
   styleId: string;
   styleLabel: string;
   format: string;
-  image: string; // base64 data URL
+  image: string; // base64 data URL (with text overlay)
+  baseImage: string; // base64 data URL (clean, without text)
   prompt: string;
+  textOverlay: TextOverlay;
 }
 
 export interface Creative {
@@ -36,7 +48,7 @@ export interface Creative {
   height: number;
   variant: number;
   briefing: BriefingData;
-  imageUrl?: string; // base64 ou URL da imagem gerada
+  imageUrl?: string;
 }
 
 export type ChatStep =
@@ -44,13 +56,16 @@ export type ChatStep =
   | "productName"
   | "productType"
   | "targetAudience"
-  | "mainBenefit"
+  | "headline"
+  | "subheadline"
   | "tone"
   | "colors"
   | "cta"
+  | "textPosition"
   | "additionalInfo"
   | "styles"
   | "formats"
+  | "quantity"
   | "confirm"
   | "generating"
   | "done";

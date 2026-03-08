@@ -73,21 +73,22 @@ function getColors(briefing: BriefingData): ColorScheme {
 }
 
 function getHeadlines(briefing: BriefingData): string[] {
-  const { productName, mainBenefit, productType } = briefing;
+  const { productName, headline, productType } = briefing;
+  const h = headline || productName;
   return [
-    mainBenefit.toUpperCase(),
+    h.toUpperCase(),
     `${productName}`,
     `O ${productType} que vai transformar seus resultados`,
-    `Descubra como ${mainBenefit.toLowerCase()}`,
-    `Chegou a hora de ${mainBenefit.toLowerCase()}`,
-    `Pare de perder tempo. Comece a ${mainBenefit.toLowerCase()}`,
+    `Descubra como ${h.toLowerCase()}`,
+    `Chegou a hora de ${h.toLowerCase()}`,
+    `Pare de perder tempo. Comece a ${h.toLowerCase()}`,
   ];
 }
 
 function getSubheadlines(briefing: BriefingData): string[] {
-  const { targetAudience, additionalInfo } = briefing;
+  const { targetAudience, additionalInfo, subheadline } = briefing;
   const base = [
-    `Feito especialmente para ${targetAudience.toLowerCase()}`,
+    subheadline || `Feito especialmente para ${targetAudience.toLowerCase()}`,
     `Método comprovado por centenas de alunos`,
     `Vagas limitadas — garanta a sua agora`,
     `Resultados reais em tempo recorde`,

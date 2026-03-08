@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Sparkles, Send, ArrowRight, Loader2, Check } from "lucide-react";
-import { ChatMessage, ChatStep, BriefingData, GeneratedImage } from "@/types";
-import { chatSteps, formatBriefingSummary, mapStyleLabelsToIds, mapFormatLabelsToIds } from "@/lib/chat-flow";
+import { ChatMessage, ChatStep, BriefingData, GeneratedImage, TextOverlay } from "@/types";
+import { chatSteps, formatBriefingSummary, mapStyleLabelsToIds, mapFormatLabelsToIds, parseQuantity } from "@/lib/chat-flow";
+import { applyTextOverlay } from "@/lib/canvas-overlay";
 import ChatBubble from "@/components/ChatBubble";
 import TypingIndicator from "@/components/TypingIndicator";
 
@@ -85,42 +86,62 @@ export default function ChatPage() {
 
     const styleIds = mapStyleLabelsToIds(completeBriefing.styles);
     const formatIds = mapFormatLabelsToIds(completeBriefing.formats);
+    const quantity = completeBriefing.quantity || 1;
+
+    const textOverlay: TextOverlay = {
+      headline: completeBriefing.headline,
+      subheadline: completeBriefing.subheadline,
+      cta: completeBriefing.cta,
+      textPosition: completeBriefing.textPosition || "bottom",
+    };
 
     const allGenerated: GeneratedImage[] = [];
     const errors: string[] = [];
-    const totalCount = styleIds.length * formatIds.length;
+    const totalCount = styleIds.length * formatIds.length * quantity;
     let current = 0;
 
     for (const styleId of styleIds) {
       for (const format of formatIds) {
-        current++;
-        setGenerationProgress(`Gerando ${current}/${totalCount}...`);
+        for (let q = 0; q < quantity; q++) {
+          current++;
+          setGenerationProgress(`Gerando ${current}/${totalCount}...`);
 
-        try {
-          const res = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ styleId, briefing: completeBriefing, format }),
-          });
-
-          const data = await res.json();
-          if (data.image) {
-            allGenerated.push({
-              id: `gen-${Date.now()}-${styleId}-${format}`,
-              styleId,
-              styleLabel: data.style,
-              format,
-              image: data.image,
-              prompt: data.prompt,
+          try {
+            const res = await fetch("/api/generate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ styleId, briefing: completeBriefing, format }),
             });
-          } else if (data.error) {
-            errors.push(data.error);
-            console.error(`Erro ${styleId}/${format}:`, data.error);
+
+            const data = await res.json();
+            if (data.image) {
+              // Apply text overlay via canvas
+              let finalImage: string;
+              try {
+                finalImage = await applyTextOverlay(data.image, textOverlay, format);
+              } catch {
+                finalImage = data.image; // fallback to base image
+              }
+
+              allGenerated.push({
+                id: `gen-${Date.now()}-${styleId}-${format}-${q}`,
+                styleId,
+                styleLabel: data.style,
+                format,
+                baseImage: data.image,
+                image: finalImage,
+                prompt: data.prompt,
+                textOverlay,
+              });
+            } else if (data.error) {
+              errors.push(data.error);
+              console.error(`Erro ${styleId}/${format}:`, data.error);
+            }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "Erro de conexão";
+            errors.push(msg);
+            console.error(`Erro ${styleId}/${format}:`, err);
           }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "Erro de conexão";
-          errors.push(msg);
-          console.error(`Erro ${styleId}/${format}:`, err);
         }
       }
     }
@@ -152,6 +173,10 @@ export default function ChatPage() {
             updated.colors = [userAnswer];
           } else if (step.field === "styles" || step.field === "formats") {
             (updated as Record<string, string[]>)[step.field!] = userAnswer.split(", ");
+          } else if (step.field === "textPosition") {
+            updated.textPosition = userAnswer === "Parte Superior" ? "top" : "bottom";
+          } else if (step.field === "quantity") {
+            updated.quantity = parseQuantity(userAnswer);
           } else {
             (updated as Record<string, string>)[step.field!] = userAnswer;
           }
@@ -168,7 +193,7 @@ export default function ChatPage() {
       // Handle special cases
       if (currentStep === "welcome" && userAnswer === "Como funciona?") {
         addAssistantMessage(
-          "É simples! Eu vou te fazer algumas perguntas sobre seu produto, público-alvo e estilo visual. Depois você escolhe os estilos de criativo (Cinematic, Infoproduto, Ultra Realista, etc.) e os formatos. A IA gera imagens profissionais para cada combinação. Vamos começar?",
+          "É simples! Eu vou te fazer algumas perguntas sobre seu produto, público-alvo e estilo visual. Você escreve a **headline**, **subheadline** e o texto do **botão CTA**. Depois escolhe os estilos de criativo, formatos e quantas variações quer. A IA gera imagens profissionais com seu texto sobreposto. E depois de gerado, você pode editar o texto e a posição! Vamos começar?",
           ["Vamos lá!"]
         );
         return;
@@ -186,24 +211,26 @@ export default function ChatPage() {
       if (currentStep === "confirm" && userAnswer === "Gerar Criativos!") {
         setCurrentStep("generating");
         addAssistantMessage(
-          "Gerando seus criativos com IA... Cada imagem é criada individualmente para máxima qualidade."
+          "Gerando seus criativos com IA... Cada imagem é criada individualmente com seu texto sobreposto."
         );
 
         const completeBriefing: BriefingData = {
           productName: "",
           productType: "",
           targetAudience: "",
-          mainBenefit: "",
+          headline: "",
+          subheadline: "",
           tone: "",
           colors: [],
           cta: "",
+          textPosition: "bottom",
+          quantity: 1,
           additionalInfo: "",
           styles: [],
           formats: [],
           ...briefing,
         };
 
-        // Usar timeout para garantir que o state foi atualizado
         setTimeout(async () => {
           const result = await generateCreativesWithAI(completeBriefing);
 
@@ -216,8 +243,8 @@ export default function ChatPage() {
               {
                 id: `msg-${Date.now()}`,
                 role: "assistant",
-                content: `Pronto! Foram gerados **${result.generated.length} criativos** com sucesso! Clique abaixo para ver todos em alta resolução.`,
-                images: result.generated.slice(0, 4), // preview das primeiras 4
+                content: `Pronto! Foram gerados **${result.generated.length} criativos** com sucesso! No dashboard você pode **editar o texto, posição e baixar** cada criativo.`,
+                images: result.generated.slice(0, 4),
               },
             ]);
           } else {
@@ -248,6 +275,10 @@ export default function ChatPage() {
             updatedBriefing.colors = [userAnswer];
           } else if (step.field === "styles" || step.field === "formats") {
             (updatedBriefing as Record<string, string[]>)[step.field] = userAnswer.split(", ");
+          } else if (step.field === "textPosition") {
+            updatedBriefing.textPosition = userAnswer === "Parte Superior" ? "top" : "bottom";
+          } else if (step.field === "quantity") {
+            updatedBriefing.quantity = parseQuantity(userAnswer);
           } else {
             (updatedBriefing as Record<string, string>)[step.field] = userAnswer;
           }
@@ -257,10 +288,11 @@ export default function ChatPage() {
         );
         const styleCount = (updatedBriefing.styles || []).length;
         const formatCount = (updatedBriefing.formats || []).length;
-        const totalCreatives = styleCount * formatCount;
+        const qty = updatedBriefing.quantity || 1;
+        const totalCreatives = styleCount * formatCount * qty;
 
         addAssistantMessage(
-          `Perfeito! Aqui está o resumo do seu briefing:\n\n${summary}\n\nSerão gerados **${totalCreatives} criativos** (${styleCount} estilos × ${formatCount} formatos). Posso gerar?`,
+          `Perfeito! Aqui está o resumo do seu briefing:\n\n${summary}\n\nSerão gerados **${totalCreatives} criativos** (${styleCount} estilos × ${formatCount} formatos × ${qty} variações). Posso gerar?`,
           chatSteps[nextStep].options
         );
       } else {
@@ -327,7 +359,6 @@ export default function ChatPage() {
               <ChatBubble
                 message={{
                   ...msg,
-                  // Para multi-select, não renderizar options como clicáveis do ChatBubble
                   options: isMultiSelectStep(currentStep) && msg === lastMessage
                     ? undefined
                     : msg.options,
@@ -377,7 +408,7 @@ export default function ChatPage() {
                       <img src={img.image} alt={`${img.styleLabel} - ${img.format}`} className="w-full" />
                       <div className="px-2 py-1.5 bg-surface-lighter">
                         <p className="text-xs text-text-secondary truncate">
-                          {img.styleLabel} • {img.format}
+                          {img.styleLabel} &bull; {img.format}
                         </p>
                       </div>
                     </div>

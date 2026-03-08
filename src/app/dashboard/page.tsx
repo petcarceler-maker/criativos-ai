@@ -11,9 +11,11 @@ import {
   List,
   Download,
   Eye,
+  Pencil,
   X,
 } from "lucide-react";
 import { GeneratedImage } from "@/types";
+import CreativeEditor from "@/components/CreativeEditor";
 
 type FormatFilter = "all" | "feed" | "story" | "banner" | "wide";
 
@@ -30,6 +32,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [loaded, setLoaded] = useState(false);
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
+  const [editingImage, setEditingImage] = useState<GeneratedImage | null>(null);
 
   useEffect(() => {
     const data = JSON.parse(
@@ -57,6 +60,15 @@ export default function DashboardPage() {
     link.download = `${creative.styleLabel}-${creative.format}-${creative.id}.png`;
     link.href = creative.image;
     link.click();
+  };
+
+  const handleSaveEdit = (updated: GeneratedImage) => {
+    const newCreatives = creatives.map((c) =>
+      c.id === updated.id ? updated : c
+    );
+    setCreatives(newCreatives);
+    localStorage.setItem("criativos-ai-generated", JSON.stringify(newCreatives));
+    setEditingImage(null);
   };
 
   const filterButtons: { value: FormatFilter; label: string }[] = [
@@ -227,12 +239,23 @@ export default function DashboardPage() {
                               <button
                                 onClick={() => setSelectedImage(creative)}
                                 className="bg-white text-black rounded-full p-2.5 hover:scale-110 transition"
+                                title="Visualizar"
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
+                              {creative.baseImage && (
+                                <button
+                                  onClick={() => setEditingImage(creative)}
+                                  className="bg-brand-600 text-white rounded-full p-2.5 hover:scale-110 transition"
+                                  title="Editar texto"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleDownload(creative)}
                                 className="bg-white text-black rounded-full p-2.5 hover:scale-110 transition"
+                                title="Download"
                               >
                                 <Download className="w-4 h-4" />
                               </button>
@@ -269,7 +292,7 @@ export default function DashboardPage() {
                         {creative.styleLabel} — {formatLabels[creative.format] || creative.format}
                       </p>
                       <p className="text-xs text-text-muted mt-0.5 truncate">
-                        Prompt: {creative.prompt.slice(0, 80)}...
+                        {creative.textOverlay?.headline || creative.prompt.slice(0, 80)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -279,6 +302,14 @@ export default function DashboardPage() {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
+                      {creative.baseImage && (
+                        <button
+                          onClick={() => setEditingImage(creative)}
+                          className="p-2 rounded-lg hover:bg-surface-border text-text-muted hover:text-brand-400 transition"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDownload(creative)}
                         className="p-2 rounded-lg hover:bg-surface-border text-text-muted hover:text-text-primary transition"
@@ -320,20 +351,45 @@ export default function DashboardPage() {
                 <p className="text-white font-medium">
                   {selectedImage.styleLabel} — {formatLabels[selectedImage.format]}
                 </p>
-                <p className="text-white/50 text-xs mt-1 max-w-lg truncate">
-                  {selectedImage.prompt}
-                </p>
+                {selectedImage.textOverlay && (
+                  <p className="text-white/50 text-xs mt-1">
+                    {selectedImage.textOverlay.headline} | {selectedImage.textOverlay.subheadline}
+                  </p>
+                )}
               </div>
-              <button
-                onClick={() => handleDownload(selectedImage)}
-                className="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 transition"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedImage.baseImage && (
+                  <button
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setEditingImage(selectedImage);
+                    }}
+                    className="bg-surface-lighter hover:bg-surface-border text-white font-semibold px-4 py-2.5 rounded-lg flex items-center gap-2 transition"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Editar
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDownload(selectedImage)}
+                  className="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 transition"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Editor */}
+      {editingImage && (
+        <CreativeEditor
+          creative={editingImage}
+          onClose={() => setEditingImage(null)}
+          onSave={handleSaveEdit}
+        />
       )}
     </div>
   );

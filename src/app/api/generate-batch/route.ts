@@ -11,10 +11,12 @@ interface BatchRequest {
     productName: string;
     productType: string;
     targetAudience: string;
-    mainBenefit: string;
+    headline: string;
+    subheadline: string;
     tone: string;
     colors: string[];
     cta: string;
+    textPosition: "top" | "bottom";
     additionalInfo: string;
   };
 }
@@ -53,7 +55,6 @@ export async function POST(request: NextRequest) {
     const results: GeneratedCreative[] = [];
     const errors: string[] = [];
 
-    // Gerar cada combinação estilo x formato
     for (const styleId of styleIds) {
       const style = getStyleById(styleId);
       if (!style) {
