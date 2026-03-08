@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
           const prompt = buildPrompt(style, { ...briefing, format });
 
           const response = await genAI.models.generateImages({
-            model: "imagen-3.0-generate-002",
+            model: "imagen-4.0-generate-001",
             prompt,
             config: {
               numberOfImages: 1,
