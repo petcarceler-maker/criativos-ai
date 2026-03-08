@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "sua_chave_aqui") {
       return NextResponse.json(
-        { error: "GEMINI_API_KEY não configurada. Adicione sua chave no arquivo .env.local" },
+        { error: "GEMINI_API_KEY não configurada. Adicione a variável de ambiente GEMINI_API_KEY nas configurações do Vercel (Settings > Environment Variables) e faça o redeploy." },
         { status: 500 }
       );
     }

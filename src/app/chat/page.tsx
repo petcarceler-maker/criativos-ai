@@ -87,6 +87,7 @@ export default function ChatPage() {
     const formatIds = mapFormatLabelsToIds(completeBriefing.formats);
 
     const allGenerated: GeneratedImage[] = [];
+    const errors: string[] = [];
     const totalCount = styleIds.length * formatIds.length;
     let current = 0;
 
@@ -113,9 +114,12 @@ export default function ChatPage() {
               prompt: data.prompt,
             });
           } else if (data.error) {
+            errors.push(data.error);
             console.error(`Erro ${styleId}/${format}:`, data.error);
           }
         } catch (err) {
+          const msg = err instanceof Error ? err.message : "Erro de conexão";
+          errors.push(msg);
           console.error(`Erro ${styleId}/${format}:`, err);
         }
       }
@@ -133,7 +137,7 @@ export default function ChatPage() {
       );
     }
 
-    return allGenerated;
+    return { generated: allGenerated, errors };
   };
 
   const processStep = useCallback(
@@ -201,29 +205,31 @@ export default function ChatPage() {
 
         // Usar timeout para garantir que o state foi atualizado
         setTimeout(async () => {
-          const generated = await generateCreativesWithAI(completeBriefing);
+          const result = await generateCreativesWithAI(completeBriefing);
 
           setCurrentStep("done");
           setIsDone(true);
 
-          if (generated.length > 0) {
+          if (result.generated.length > 0) {
             setMessages((prev) => [
               ...prev,
               {
                 id: `msg-${Date.now()}`,
                 role: "assistant",
-                content: `Pronto! Foram gerados **${generated.length} criativos** com sucesso! Clique abaixo para ver todos em alta resolução.`,
-                images: generated.slice(0, 4), // preview das primeiras 4
+                content: `Pronto! Foram gerados **${result.generated.length} criativos** com sucesso! Clique abaixo para ver todos em alta resolução.`,
+                images: result.generated.slice(0, 4), // preview das primeiras 4
               },
             ]);
           } else {
+            const errorDetail = result.errors.length > 0
+              ? `\n\nErro: ${result.errors[0]}`
+              : "";
             setMessages((prev) => [
               ...prev,
               {
                 id: `msg-${Date.now()}`,
                 role: "assistant",
-                content:
-                  "Houve um problema na geração. Verifique se a GEMINI_API_KEY está configurada no arquivo .env.local e reinicie o servidor.",
+                content: `Houve um problema na geração.${errorDetail}`,
               },
             ]);
           }
