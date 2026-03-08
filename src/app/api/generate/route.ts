@@ -91,15 +91,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Build the main text prompt
-    let mainPrompt = `${prompt}\n\nIMPORTANT: Generate an image with aspect ratio ${aspectRatio}. Output ONLY the image, no text.`;
+    let mainPrompt = `${prompt}\n\nIMPORTANT: Generate an image with aspect ratio ${aspectRatio}.
 
-    // Ensure the image matches the copy/briefing
-    mainPrompt += `\n\nThe image MUST visually represent this marketing message:
-- Headline: "${briefing.headline}"
-- Subheadline: "${briefing.subheadline}"
+CRITICAL RULE — ABSOLUTELY NO TEXT IN THE IMAGE:
+- Do NOT render any text, words, letters, numbers, typography, logos, watermarks, captions, headlines, or written content of any kind inside the image.
+- The image must be PURELY VISUAL — no readable characters whatsoever.
+- Text/copy will be added as an overlay AFTER generation, so the image must be completely text-free.
+- If the scene would naturally contain signage or labels, make them blurred, illegible, or replaced with abstract shapes.
+
+The image should visually represent this concept through IMAGERY ONLY (no text):
 - Product: "${briefing.productName}" (${briefing.productType})
 - Target audience: "${briefing.targetAudience}"
-The visual elements, mood, colors, and composition should reinforce and complement the copy message.`;
+- Mood/message: "${briefing.headline}" — convey this feeling through colors, composition, and visual elements, NOT through written words.
+The visual elements, mood, colors, and composition should reinforce the marketing message without any text.`;
 
     if (hasProductPhotos) {
       mainPrompt += `\n\nCRITICAL: Incorporate the person/product from the provided photos into this creative. The person's face and features must be IDENTICAL to the photos provided. Do not alter their appearance.`;

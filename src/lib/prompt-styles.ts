@@ -153,8 +153,8 @@ export function buildPrompt(style: CreativeStyle, context: PromptContext): strin
     prompt += ` Campaign detail: ${context.additionalInfo}.`;
   }
 
-  // Marketing copy alignment — image must match the message
-  prompt += `\n\nThe visual MUST convey: "${context.headline}" — ${context.subheadline}. The composition, mood, subject, and color should reinforce this exact message for the target audience: ${context.targetAudience}.`;
+  // Marketing copy alignment — convey through imagery only, never render text
+  prompt += `\n\nThe visual mood and atmosphere should evoke the feeling of: ${context.headline}. The composition, lighting, subject expression, and color palette should reinforce this emotion for the target audience: ${context.targetAudience}. Do NOT write or render these words in the image — express them purely through visual elements.`;
 
   // Quality boost
   prompt += `\n\nQuality: ultra-detailed, 8k resolution, professional color grading, award-winning commercial photography, perfectly composed, no distortion, photorealistic quality, publishable advertising visual.`;
