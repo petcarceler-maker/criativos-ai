@@ -5,6 +5,7 @@ interface StepConfig {
   options?: string[];
   field?: string;
   multiSelect?: boolean;
+  isUpload?: boolean;
   nextStep: ChatStep;
 }
 
@@ -102,6 +103,29 @@ export const chatSteps: Record<ChatStep, StepConfig> = {
     message:
       'Tem alguma informação adicional? (preço, desconto, prazo, bônus...) Se não, digite "não".',
     field: "additionalInfo",
+    nextStep: "referenceImages",
+  },
+  referenceImages: {
+    message:
+      'Quer enviar **imagens de referência** para a IA se inspirar? Pode ser criativos de concorrentes, estilos que você gosta, etc. Envie as imagens ou clique em "Pular".',
+    options: ["Pular", "Usar banco de referências"],
+    field: "referenceImages",
+    isUpload: true,
+    nextStep: "productPhotos",
+  },
+  productPhotos: {
+    message:
+      'Quer enviar **fotos do produto/pessoa** para usar no criativo? A IA vai manter a fidelidade do rosto e do produto. Envie as fotos ou clique em "Pular".',
+    options: ["Pular"],
+    field: "productPhotos",
+    isUpload: true,
+    nextStep: "customPrompt",
+  },
+  customPrompt: {
+    message:
+      'Quer adicionar um **prompt personalizado** para guiar a IA? Descreva em detalhes o que você quer ver no criativo. Ou clique em "Pular" para usar o prompt automático.',
+    options: ["Pular"],
+    field: "customPrompt",
     nextStep: "styles",
   },
   styles: {
@@ -135,7 +159,7 @@ export const chatSteps: Record<ChatStep, StepConfig> = {
   },
   quantity: {
     message: "Quantas variações de cada combinação você deseja gerar?",
-    options: ["1 variação", "2 variações", "3 variações"],
+    options: ["1 variação", "2 variações", "3 variações", "4 variações", "5 variações"],
     field: "quantity",
     nextStep: "confirm",
   },
@@ -186,7 +210,11 @@ export function parseQuantity(label: string): number {
   return match ? parseInt(match[1], 10) : 1;
 }
 
-export function formatBriefingSummary(data: Record<string, string | string[]>): string {
+export function isUploadStep(step: ChatStep): boolean {
+  return chatSteps[step]?.isUpload === true;
+}
+
+export function formatBriefingSummary(data: Record<string, string | string[] | number>): string {
   const labels: Record<string, string> = {
     productName: "Produto",
     productType: "Tipo",
@@ -198,16 +226,27 @@ export function formatBriefingSummary(data: Record<string, string | string[]>): 
     cta: "Botão CTA",
     textPosition: "Posição do Texto",
     additionalInfo: "Info Adicional",
+    referenceImages: "Imagens de Referência",
+    productPhotos: "Fotos do Produto",
+    customPrompt: "Prompt Personalizado",
     styles: "Estilos Visuais",
     formats: "Formatos",
     quantity: "Variações",
   };
 
+  const skip = new Set(["referenceImages", "productPhotos"]);
+
   return Object.entries(data)
-    .filter(([, value]) => value && value.length > 0)
+    .filter(([key, value]) => {
+      if (skip.has(key)) return false;
+      if (value === undefined || value === null) return false;
+      if (typeof value === "string") return value.length > 0;
+      if (Array.isArray(value)) return value.length > 0;
+      return true;
+    })
     .map(([key, value]) => {
       const label = labels[key] || key;
-      const val = Array.isArray(value) ? value.join(", ") : value;
+      const val = Array.isArray(value) ? value.join(", ") : String(value);
       return `• **${label}:** ${val}`;
     })
     .join("\n");

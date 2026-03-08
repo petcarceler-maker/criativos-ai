@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Part } from "@google/genai";
 import { getStyleById, buildPrompt } from "@/lib/prompt-styles";
+import { getReferencesForProductType, buildReferencePromptSection } from "@/lib/reference-bank";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -17,14 +18,18 @@ interface GenerateRequest {
     cta: string;
     textPosition: "top" | "bottom";
     additionalInfo: string;
+    customPrompt?: string;
   };
   format: "feed" | "story" | "banner" | "wide";
+  referenceImages?: string[]; // base64 data URLs
+  productPhotos?: string[]; // base64 data URLs
+  useReferenceBank?: boolean;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { styleId, briefing, format } = body;
+    const { styleId, briefing, format, referenceImages, productPhotos, useReferenceBank } = body;
 
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "sua_chave_aqui") {
       return NextResponse.json(
@@ -38,14 +43,73 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Estilo não encontrado" }, { status: 400 });
     }
 
-    const prompt = buildPrompt(style, { ...briefing, format });
+    // Build the base prompt
+    let prompt = buildPrompt(style, { ...briefing, format });
+
+    // Add reference bank descriptions if requested
+    if (useReferenceBank) {
+      const refs = getReferencesForProductType(briefing.productType);
+      prompt += buildReferencePromptSection(refs);
+    }
+
+    // Add custom prompt if provided
+    if (briefing.customPrompt && briefing.customPrompt.toLowerCase() !== "pular") {
+      prompt += `\n\nAdditional creative direction from user: ${briefing.customPrompt}`;
+    }
 
     const aspectRatio = getAspectRatio(format);
-    const imagePrompt = `${prompt}\n\nIMPORTANT: Generate an image with aspect ratio ${aspectRatio}. Output ONLY the image, no text.`;
+
+    // Build content parts array for multimodal request
+    const contentParts: Part[] = [];
+
+    // Add product photos with instructions to preserve identity
+    const hasProductPhotos = productPhotos && productPhotos.length > 0;
+    if (hasProductPhotos) {
+      contentParts.push({
+        text: "PRODUCT/PERSON PHOTOS - You MUST use these photos in the creative. Maintain exact facial features, skin tone, hair, and physical appearance. Do NOT change the person's face or identity. Preserve the product exactly as shown:",
+      });
+      for (const photo of productPhotos) {
+        const { base64, mimeType } = extractBase64(photo);
+        contentParts.push({
+          inlineData: { data: base64, mimeType },
+        });
+      }
+    }
+
+    // Add reference images with instructions
+    const hasReferenceImages = referenceImages && referenceImages.length > 0;
+    if (hasReferenceImages) {
+      contentParts.push({
+        text: "REFERENCE IMAGES - Use these as style/composition inspiration. Match the visual quality, lighting, and mood but create an original image:",
+      });
+      for (const ref of referenceImages) {
+        const { base64, mimeType } = extractBase64(ref);
+        contentParts.push({
+          inlineData: { data: base64, mimeType },
+        });
+      }
+    }
+
+    // Build the main text prompt
+    let mainPrompt = `${prompt}\n\nIMPORTANT: Generate an image with aspect ratio ${aspectRatio}. Output ONLY the image, no text.`;
+
+    // Ensure the image matches the copy/briefing
+    mainPrompt += `\n\nThe image MUST visually represent this marketing message:
+- Headline: "${briefing.headline}"
+- Subheadline: "${briefing.subheadline}"
+- Product: "${briefing.productName}" (${briefing.productType})
+- Target audience: "${briefing.targetAudience}"
+The visual elements, mood, colors, and composition should reinforce and complement the copy message.`;
+
+    if (hasProductPhotos) {
+      mainPrompt += `\n\nCRITICAL: Incorporate the person/product from the provided photos into this creative. The person's face and features must be IDENTICAL to the photos provided. Do not alter their appearance.`;
+    }
+
+    contentParts.push({ text: mainPrompt });
 
     const response = await genAI.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: imagePrompt,
+      model: "gemini-2.0-flash-exp-image-generation",
+      contents: contentParts,
       config: {
         responseModalities: ["TEXT", "IMAGE"],
       },
@@ -53,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.candidates || response.candidates.length === 0) {
       console.error("Resposta Gemini sem candidates:", JSON.stringify(response).slice(0, 500));
-      return NextResponse.json({ error: "A API não retornou nenhum resultado. Verifique se o modelo suporta geração de imagens." }, { status: 500 });
+      return NextResponse.json({ error: "A API não retornou nenhum resultado." }, { status: 500 });
     }
 
     const parts = response.candidates[0]?.content?.parts || [];
@@ -78,6 +142,15 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+function extractBase64(dataUrl: string): { base64: string; mimeType: string } {
+  if (dataUrl.startsWith("data:")) {
+    const mimeType = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+    const base64 = dataUrl.split(",")[1];
+    return { base64, mimeType };
+  }
+  return { base64: dataUrl, mimeType: "image/jpeg" };
 }
 
 function getAspectRatio(format: string): "1:1" | "9:16" | "16:9" | "3:4" | "4:3" {

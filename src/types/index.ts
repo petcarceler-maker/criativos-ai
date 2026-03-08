@@ -4,6 +4,7 @@ export interface ChatMessage {
   content: string;
   options?: string[];
   images?: GeneratedImage[];
+  uploadedImages?: string[]; // base64 previews of uploaded images
 }
 
 export interface BriefingData {
@@ -20,6 +21,9 @@ export interface BriefingData {
   additionalInfo: string;
   styles: string[];
   formats: string[];
+  customPrompt: string;
+  referenceImages: string[]; // base64 data URLs
+  productPhotos: string[]; // base64 data URLs for photos to use in the creative
 }
 
 export interface TextOverlay {
@@ -63,6 +67,9 @@ export type ChatStep =
   | "cta"
   | "textPosition"
   | "additionalInfo"
+  | "referenceImages"
+  | "productPhotos"
+  | "customPrompt"
   | "styles"
   | "formats"
   | "quantity"

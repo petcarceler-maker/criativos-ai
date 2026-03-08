@@ -2,13 +2,22 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Sparkles, Send, ArrowRight, Loader2, Check } from "lucide-react";
+import { Sparkles, Send, ArrowRight, Loader2, Check, Upload, Image as ImageIcon, X } from "lucide-react";
 import { ChatMessage, ChatStep, BriefingData, GeneratedImage, TextOverlay } from "@/types";
-import { chatSteps, formatBriefingSummary, mapStyleLabelsToIds, mapFormatLabelsToIds, parseQuantity } from "@/lib/chat-flow";
+import { chatSteps, formatBriefingSummary, mapStyleLabelsToIds, mapFormatLabelsToIds, parseQuantity, isUploadStep } from "@/lib/chat-flow";
 import { applyTextOverlay } from "@/lib/canvas-overlay";
 import { saveCreatives } from "@/lib/image-store";
 import ChatBubble from "@/components/ChatBubble";
 import TypingIndicator from "@/components/TypingIndicator";
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -20,8 +29,10 @@ export default function ChatPage() {
   const [isDone, setIsDone] = useState(false);
   const [multiSelected, setMultiSelected] = useState<string[]>([]);
   const [generationProgress, setGenerationProgress] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -82,6 +93,67 @@ export default function ChatPage() {
     processStep(answer);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles: string[] = [];
+    for (let i = 0; i < Math.min(files.length, 10); i++) {
+      const file = files[i];
+      if (!file.type.startsWith("image/")) continue;
+      try {
+        const base64 = await fileToBase64(file);
+        newFiles.push(base64);
+      } catch {
+        console.error("Erro ao ler arquivo:", file.name);
+      }
+    }
+
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
+    scrollToBottom();
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleUploadConfirm = () => {
+    if (uploadedFiles.length === 0) return;
+
+    const step = chatSteps[currentStep];
+    const field = step.field;
+
+    // Save uploaded images to briefing
+    setBriefing((prev) => ({
+      ...prev,
+      [field!]: uploadedFiles,
+    }));
+
+    // Add user message with image previews
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `msg-${Date.now()}`,
+        role: "user",
+        content: `${uploadedFiles.length} imagem(ns) enviada(s)`,
+        uploadedImages: uploadedFiles.slice(0, 4),
+      },
+    ]);
+
+    setUploadedFiles([]);
+
+    // Advance to next step
+    const nextStep = step.nextStep;
+    setCurrentStep(nextStep);
+    const nextStepConfig = chatSteps[nextStep];
+    addAssistantMessage(nextStepConfig.message, nextStepConfig.options);
+  };
+
+  const removeUploadedFile = (index: number) => {
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const generateCreativesWithAI = async (completeBriefing: BriefingData) => {
     setIsGenerating(true);
 
@@ -101,6 +173,9 @@ export default function ChatPage() {
     const totalCount = styleIds.length * formatIds.length * quantity;
     let current = 0;
 
+    // Check if using reference bank
+    const useReferenceBank = (completeBriefing.referenceImages || []).length === 0;
+
     for (const styleId of styleIds) {
       for (const format of formatIds) {
         for (let q = 0; q < quantity; q++) {
@@ -111,7 +186,14 @@ export default function ChatPage() {
             const res = await fetch("/api/generate", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ styleId, briefing: completeBriefing, format }),
+              body: JSON.stringify({
+                styleId,
+                briefing: completeBriefing,
+                format,
+                referenceImages: completeBriefing.referenceImages || [],
+                productPhotos: completeBriefing.productPhotos || [],
+                useReferenceBank,
+              }),
             });
 
             if (!res.ok) {
@@ -128,7 +210,7 @@ export default function ChatPage() {
               try {
                 finalImage = await applyTextOverlay(data.image, textOverlay, format);
               } catch {
-                finalImage = data.image; // fallback to base image
+                finalImage = data.image;
               }
 
               allGenerated.push({
@@ -185,6 +267,14 @@ export default function ChatPage() {
             updated.textPosition = userAnswer === "Parte Superior" ? "top" : "bottom";
           } else if (step.field === "quantity") {
             updated.quantity = parseQuantity(userAnswer);
+          } else if (step.field === "referenceImages" || step.field === "productPhotos") {
+            // Skip - handled by upload flow or set empty on "Pular"
+            if (userAnswer === "Pular") {
+              (updated as Record<string, string[]>)[step.field!] = [];
+            } else if (userAnswer === "Usar banco de referências") {
+              // Flag: don't set referenceImages, API will use reference bank
+              (updated as Record<string, string[]>)[step.field!] = [];
+            }
           } else {
             (updated as Record<string, string>)[step.field!] = userAnswer;
           }
@@ -201,7 +291,7 @@ export default function ChatPage() {
       // Handle special cases
       if (currentStep === "welcome" && userAnswer === "Como funciona?") {
         addAssistantMessage(
-          "É simples! Eu vou te fazer algumas perguntas sobre seu produto, público-alvo e estilo visual. Você escreve a **headline**, **subheadline** e o texto do **botão CTA**. Depois escolhe os estilos de criativo, formatos e quantas variações quer. A IA gera imagens profissionais com seu texto sobreposto. E depois de gerado, você pode editar o texto e a posição! Vamos começar?",
+          "É simples! Eu vou te fazer algumas perguntas sobre seu produto, público-alvo e estilo visual. Você escreve a **headline**, **subheadline** e o texto do **botão CTA**. Pode enviar **fotos de referência** e **fotos do produto** para a IA usar. Também pode escrever um **prompt personalizado** para guiar a geração. A IA gera imagens profissionais mantendo fidelidade ao rosto/produto. Vamos começar?",
           ["Vamos lá!"]
         );
         return;
@@ -236,6 +326,9 @@ export default function ChatPage() {
           additionalInfo: "",
           styles: [],
           formats: [],
+          customPrompt: "",
+          referenceImages: [],
+          productPhotos: [],
           ...briefing,
         };
 
@@ -309,16 +402,26 @@ export default function ChatPage() {
             (updatedBriefing as Record<string, string>)[step.field] = userAnswer;
           }
         }
+
+        const refCount = (updatedBriefing.referenceImages || []).length;
+        const photoCount = (updatedBriefing.productPhotos || []).length;
+        const hasCustomPrompt = updatedBriefing.customPrompt && updatedBriefing.customPrompt !== "Pular";
+
         const summary = formatBriefingSummary(
-          updatedBriefing as Record<string, string | string[]>
+          updatedBriefing as Record<string, string | string[] | number>
         );
         const styleCount = (updatedBriefing.styles || []).length;
         const formatCount = (updatedBriefing.formats || []).length;
         const qty = updatedBriefing.quantity || 1;
         const totalCreatives = styleCount * formatCount * qty;
 
+        let extras = "";
+        if (refCount > 0) extras += `\n• **Imagens de Referência:** ${refCount} enviada(s)`;
+        if (photoCount > 0) extras += `\n• **Fotos do Produto:** ${photoCount} enviada(s)`;
+        if (hasCustomPrompt) extras += `\n• **Prompt Personalizado:** sim`;
+
         addAssistantMessage(
-          `Perfeito! Aqui está o resumo do seu briefing:\n\n${summary}\n\nSerão gerados **${totalCreatives} criativos** (${styleCount} estilos × ${formatCount} formatos × ${qty} variações). Posso gerar?`,
+          `Perfeito! Aqui está o resumo do seu briefing:\n\n${summary}${extras}\n\nSerão gerados **${totalCreatives} criativos** (${styleCount} estilos × ${formatCount} formatos × ${qty} variações). Posso gerar?`,
           chatSteps[nextStep].options
         );
       } else {
@@ -345,12 +448,19 @@ export default function ChatPage() {
       return;
     }
 
+    // For upload steps, clicking an option (Pular/Usar banco) advances
+    if (isUploadStep(currentStep)) {
+      setUploadedFiles([]);
+    }
+
     processStep(option);
   };
 
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
   const hasOptions = lastMessage?.options;
   const showMultiSelectConfirm = isMultiSelectStep(currentStep) && multiSelected.length > 0;
+  const isCurrentUploadStep = isUploadStep(currentStep);
+  const showTextInput = !isDone && !isGenerating && !hasOptions && !isMultiSelectStep(currentStep) && !isCurrentUploadStep;
 
   return (
     <div className="h-screen flex flex-col bg-surface">
@@ -387,10 +497,28 @@ export default function ChatPage() {
                   ...msg,
                   options: isMultiSelectStep(currentStep) && msg === lastMessage
                     ? undefined
+                    : isCurrentUploadStep && msg === lastMessage
+                    ? undefined
                     : msg.options,
                 }}
                 onOptionClick={handleOptionClick}
               />
+
+              {/* Uploaded image previews in user messages */}
+              {msg.uploadedImages && msg.uploadedImages.length > 0 && (
+                <div className="flex justify-end mt-2">
+                  <div className="flex gap-2 flex-wrap max-w-[80%] justify-end">
+                    {msg.uploadedImages.map((img, i) => (
+                      <img
+                        key={i}
+                        src={img}
+                        alt={`Upload ${i + 1}`}
+                        className="w-16 h-16 object-cover rounded-lg border border-surface-border"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Multi-select pills */}
               {isMultiSelectStep(currentStep) && msg === lastMessage && msg.options && (
@@ -423,6 +551,75 @@ export default function ChatPage() {
                       Confirmar ({multiSelected.length} selecionados)
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Upload area for upload steps */}
+              {isCurrentUploadStep && msg === lastMessage && (
+                <div className="ml-11 mt-3">
+                  {/* Upload previews */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {uploadedFiles.map((file, i) => (
+                        <div key={i} className="relative group">
+                          <img
+                            src={file}
+                            alt={`Upload ${i + 1}`}
+                            className="w-20 h-20 object-cover rounded-lg border border-surface-border"
+                          />
+                          <button
+                            onClick={() => removeUploadedFile(i)}
+                            className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {/* Upload button */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs px-4 py-2.5 rounded-full border border-dashed border-brand-500/50 text-brand-400 hover:bg-brand-600/10 transition font-medium flex items-center gap-2"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Enviar Imagens
+                    </button>
+
+                    {/* Option buttons */}
+                    {lastMessage?.options?.map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => handleOptionClick(option)}
+                        className="text-xs px-3.5 py-2.5 rounded-full border border-surface-border text-text-primary hover:border-brand-600/50 transition font-medium flex items-center gap-1.5"
+                      >
+                        {option === "Usar banco de referências" && <ImageIcon className="w-3.5 h-3.5" />}
+                        {option}
+                      </button>
+                    ))}
+
+                    {/* Confirm uploaded files */}
+                    {uploadedFiles.length > 0 && (
+                      <button
+                        onClick={handleUploadConfirm}
+                        className="text-xs px-4 py-2.5 rounded-full bg-brand-600 hover:bg-brand-700 text-white transition font-semibold flex items-center gap-1.5"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        Confirmar ({uploadedFiles.length})
+                      </button>
+                    )}
+                  </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
                 </div>
               )}
 
@@ -468,7 +665,7 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      {!isDone && !isGenerating && !hasOptions && !isMultiSelectStep(currentStep) && (
+      {showTextInput && (
         <div className="border-t border-surface-border bg-surface/80 backdrop-blur-md">
           <div className="max-w-3xl mx-auto px-4 py-3">
             <div className="flex items-center gap-2 bg-surface-lighter border border-surface-border rounded-xl px-4 py-2 focus-within:border-brand-600/50 transition">
