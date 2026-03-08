@@ -11,114 +11,65 @@ export const creativeStyles: CreativeStyle[] = [
     id: "cinematic",
     label: "Cinematic",
     description: "Visual cinematográfico com iluminação dramática e profundidade",
-    promptTemplate: `Cinematic movie poster style digital advertisement background.
-{scene}. Dramatic volumetric lighting, shallow depth of field, anamorphic lens flare,
-film grain texture, moody atmosphere, professional color grading with teal and orange tones.
-High-end commercial photography feel.
-Large clean area reserved for text overlay at {textPosition}.
-Product context: "{productName}".
-Ultra high quality, 8k resolution, photorealistic.`,
+    promptTemplate: `Award-winning commercial advertisement, cinematic color grade, teal-orange LUT, volumetric god rays, anamorphic lens flare, 50mm f/1.4 shallow depth of field, Alexa 65 cinema camera, film grain 800 ISO, sharp subject perfectly blurred background, professional color correction, {scene}, {productName} advertising campaign, large safe zone for text placement at {textPosition}, composed for {format}.`,
     negativePrompt:
-      "low quality, blurry, amateur, cartoon, anime, illustration, watermark, text artifacts, distorted faces",
+      "amateur, snapshot, phone camera, flat lighting, overexposed, underexposed, cartoon, illustration, watermark, text, distorted faces, extra limbs, blurry, low resolution",
   },
   {
     id: "infoproduto",
     label: "Infoproduto",
     description: "Estilo clássico de lançamento digital brasileiro",
-    promptTemplate: `Professional digital marketing banner background for online course/info product launch.
-{scene}. Clean modern design.
-Gradient background transitioning from {color1} to {color2}.
-Geometric abstract shapes and subtle light effects.
-Professional person silhouette or abstract success imagery.
-Large clean space for text overlay at {textPosition}.
-Product context: "{productName}". Target: "{audience}".
-Corporate modern style, clean, premium, digital marketing aesthetic.`,
+    promptTemplate: `Premium digital product launch advertising visual, vibrant gradient background {color1} to {color2}, modern geometric shapes, floating abstract light particles, confident person or product hero shot, professional studio lighting, clean commercial design, Brazilian digital marketing aesthetic, bold impactful composition, large headline area at {textPosition}, {scene}, promoting {productName} for {audience}, {format} advertising format, professional retouching.`,
     negativePrompt:
-      "low quality, cluttered, messy, childish, unprofessional, too many elements, watermark",
+      "dark, moody, cluttered, messy, amateur design, old-fashioned, dull colors, low energy, watermark, text artifacts",
   },
   {
     id: "ultra-realista",
     label: "Ultra Realista",
     description: "Fotografia hiper-realista de alta qualidade",
-    promptTemplate: `Hyper-realistic professional product photography advertisement background. {scene}.
-Shot on Hasselblad H6D-400c, 80mm lens, f/2.8.
-Perfect studio lighting setup with key light, fill light, and rim light.
-Crisp details, natural skin tones, professional retouching.
-Clean background with subtle gradient. Large space for text at {textPosition}.
-Product context: "{productName}".
-Award-winning commercial photography, ultra detailed, photorealistic, 8k.`,
+    promptTemplate: `Hyper-realistic advertising photography, Phase One IQ4 150MP medium format, Profoto B10 octabox key light, Profoto strip-box rim light, fill card, perfect natural retouching, crisp commercial detail, skin texture visible, luxury brand campaign quality, Hasselblad color science, clean studio or lifestyle background, {scene}, {productName} advertisement, safe composition at {textPosition} for text overlay, {format} format.`,
     negativePrompt:
-      "illustration, painting, cartoon, cgi look, fake, plastic skin, overprocessed, HDR artifacts",
+      "CGI look, plastic skin, over-smoothed, HDR artifacts, painting, illustration, cartoon, overprocessed, fake, wax figure, uncanny valley",
   },
   {
     id: "minimalista",
     label: "Minimalista",
     description: "Design limpo com muito espaço em branco e tipografia forte",
-    promptTemplate: `Minimalist luxury brand advertisement background design. {scene}.
-Clean white or dark background with ample negative space.
-Single focal point with elegant composition.
-Soft natural lighting, muted color palette with one accent color ({color1}).
-Premium feel, Apple-style aesthetics. Large text area at {textPosition}.
-Product context: "{productName}".
-Swiss design principles, clean lines, sophisticated, editorial quality.`,
+    promptTemplate: `Minimalist luxury brand advertising, pure white or off-white background, single focal element, ample negative space, Swiss grid design principles, natural diffused window light, one {color1} accent, Apple Mac Studio shoot quality, Leica M11 editorial photography, premium simplicity, confident composition, large clean text area at {textPosition}, {scene}, {productName} luxury advertisement, {format} format.`,
     negativePrompt:
-      "cluttered, busy, colorful, loud, cheap looking, many elements, gradients, effects",
+      "busy, cluttered, colorful gradients, neon, grungy, many elements, complex backgrounds, dark, dramatic, vintage",
   },
   {
     id: "neon-futurista",
     label: "Neon Futurista",
     description: "Visual cyberpunk com neons vibrantes e estética futurista",
-    promptTemplate: `Futuristic cyberpunk neon advertisement background design. {scene}.
-Dark background with vibrant neon lights in {color1} and {color2}.
-Glowing edges, holographic effects, reflective wet surfaces.
-Sci-fi atmosphere, futuristic city elements.
-Neon sign aesthetic with light bleeding effects. Text area at {textPosition}.
-Product context: "{productName}".
-Cyberpunk 2077 style, Blade Runner atmosphere, high contrast, vivid neon colors.`,
+    promptTemplate: `Cyberpunk futuristic advertising visual, deep black background, vivid neon lights {color1} and {color2}, wet reflective surfaces, holographic prismatic effects, light bleeding neon glow, sci-fi atmosphere, Blade Runner 2049 cinematography quality, volumetric fog, Futuristic product placement, sharp neon edges, dramatic contrast, text safe area at {textPosition}, {scene}, {productName} campaign, {format} format.`,
     negativePrompt:
-      "daylight, bright, natural, organic, vintage, retro, pastel colors, soft lighting",
+      "daylight, bright white background, natural, organic, vintage, pastel, soft lighting, sunshine, outdoors, cartoonish",
   },
   {
     id: "editorial",
     label: "Editorial / Magazine",
     description: "Estilo revista de moda/lifestyle premium",
-    promptTemplate: `High-end editorial magazine advertisement background. {scene}.
-Vogue/GQ style photography with fashion-forward composition.
-Dramatic lighting with strong shadows, high contrast.
-Sophisticated color palette, editorial cropping.
-Luxurious textures and materials visible. Text area at {textPosition}.
-Product context: "{productName}".
-Harper's Bazaar aesthetic, fashion photography, editorial layout, premium quality.`,
+    promptTemplate: `High-end editorial fashion magazine advertising spread, Vogue Brasil quality photography, dramatic Rembrandt lighting with strong shadows, high contrast black and white or desaturated palette with {color1} accent, fashion-forward composition, Helmut Newton or Annie Leibovitz style, luxurious textures and materials, editorial crop, medium format film look, aspirational lifestyle, text block area at {textPosition}, {scene}, {productName} editorial, {format} format.`,
     negativePrompt:
-      "amateur, snapshot, casual, low budget, stock photo feel, clipart, cartoon",
+      "amateur, casual snapshot, stock photo feel, clipart, cartoonish, low budget, commercial kitsch, flat even lighting",
   },
   {
     id: "gradiente-bold",
     label: "Gradiente Bold",
     description: "Gradientes vibrantes com formas geométricas ousadas",
-    promptTemplate: `Bold modern graphic design advertisement background with vibrant gradients. {scene}.
-Abstract geometric shapes, circles, and flowing forms.
-Rich gradient from {color1} through {color2} to {color3}.
-3D floating elements, glass morphism effects, depth layers.
-Modern tech startup aesthetic. Large headline space at {textPosition}.
-Product context: "{productName}".
-Dribbble trending style, modern UI aesthetic, vibrant.`,
+    promptTemplate: `Bold modern graphic design masterpiece, vivid gradient {color1} through {color2} to {color3}, abstract 3D geometric spheres and floating shapes, glass morphism translucent layers, specular highlights, modern SaaS product visual, Dribbble shot of the year quality, depth and parallax layers, vibrant brand identity, dynamic diagonal composition, Apple WWDC slide quality, headline area at {textPosition}, {scene}, {productName} visual, {format} format.`,
     negativePrompt:
-      "photography, realistic, vintage, muted colors, flat design, boring, simple",
+      "photography, realistic persons, vintage, muted, flat, boring, simple background, corporate generic, stock photo",
   },
   {
     id: "retro-vintage",
     label: "Retrô / Vintage",
     description: "Estética nostálgica com texturas envelhecidas",
-    promptTemplate: `Vintage retro style advertisement poster background. {scene}.
-1970s-80s color palette with warm tones, orange, brown, cream.
-Film grain texture, faded colors.
-Halftone dot pattern overlay, aged paper texture.
-Nostalgic atmosphere. Text area at {textPosition}.
-Product context: "{productName}".
-Retro poster design, vintage advertising aesthetic, analog photography feel.`,
+    promptTemplate: `Vintage 1970s advertising poster, warm Kodachrome color palette, amber and cream tones with {color1} accent, halftone dot screen printing texture, aged yellowed paper grain, analog film photography look, retro nostalgia, hand-crafted feel, sunburst background element, retro product shot, Wes Anderson color palette, worn texture overlay, text area at {textPosition}, {scene}, {productName} vintage advertisement, {format} format.`,
     negativePrompt:
-      "modern, clean, minimalist, digital looking, neon, futuristic, sharp, clinical",
+      "modern, clean, digital looking, neon, futuristic, sharp HD, clinical, cold colors, minimalist, tech",
   },
 ];
 
@@ -137,56 +88,57 @@ interface PromptContext {
   cta: string;
   textPosition: "top" | "bottom";
   additionalInfo: string;
+  customPrompt?: string;
   format: "feed" | "story" | "banner" | "wide";
 }
 
 const colorMap: Record<string, { color1: string; color2: string; color3: string }> = {
-  "Azul e Branco": { color1: "deep blue", color2: "white", color3: "sky blue" },
-  "Preto e Dourado": { color1: "black", color2: "gold", color3: "dark bronze" },
-  "Vermelho e Preto": { color1: "crimson red", color2: "black", color3: "dark red" },
-  "Verde e Branco": { color1: "emerald green", color2: "white", color3: "mint" },
-  "Roxo e Rosa": { color1: "deep purple", color2: "hot pink", color3: "magenta" },
+  "Azul e Branco": { color1: "electric blue", color2: "pure white", color3: "sky blue" },
+  "Preto e Dourado": { color1: "deep black", color2: "gold", color3: "dark champagne" },
+  "Vermelho e Preto": { color1: "crimson red", color2: "deep black", color3: "blood red" },
+  "Verde e Branco": { color1: "emerald green", color2: "pure white", color3: "mint" },
+  "Roxo e Rosa": { color1: "deep violet", color2: "hot pink", color3: "neon magenta" },
   "Laranja e Amarelo": { color1: "vibrant orange", color2: "golden yellow", color3: "amber" },
 };
 
 const toneToScene: Record<string, string> = {
   "Profissional e Sério":
-    "Professional corporate atmosphere, executive environment, trust and authority",
+    "corporate executive atmosphere, authority and trust, business environment, confident professional",
   "Descontraído e Jovem":
-    "Casual youthful vibe, dynamic energy, bright and fresh atmosphere",
+    "youthful dynamic energy, casual lifestyle, bright fresh atmosphere, relatable and fun",
   "Urgente e Persuasivo":
-    "High-energy urgent feeling, bold and impactful, action-oriented atmosphere",
+    "bold high-energy urgency, dramatic tension, action-oriented, compelling call to action",
   "Luxuoso e Premium":
-    "Luxury premium atmosphere, exclusive VIP feeling, gold accents and rich textures",
+    "ultra-luxury exclusive atmosphere, gold accents, VIP premium lifestyle, aspirational wealth",
   "Motivacional e Inspirador":
-    "Inspirational sunrise/mountain top atmosphere, achievement and success feeling",
+    "inspiring sunrise breakthrough moment, achievement energy, transformation, success and growth",
 };
 
 const formatToTextPosition: Record<string, string> = {
-  feed: "center of the square composition",
-  story: "upper third of the vertical composition",
-  banner: "left side of the horizontal composition",
-  wide: "center-left of the widescreen composition",
+  feed: "lower third of the square composition",
+  story: "upper 30% of the vertical composition",
+  banner: "left 40% of the horizontal composition",
+  wide: "left third of the widescreen composition",
 };
 
 const formatToAspect: Record<string, string> = {
-  feed: "square 1:1 format",
-  story: "vertical 9:16 format, tall portrait",
-  banner: "horizontal 1.91:1 format, wide landscape",
-  wide: "widescreen 16:9 format",
+  feed: "square 1:1",
+  story: "vertical 9:16 portrait",
+  banner: "horizontal 1.91:1 wide",
+  wide: "widescreen 16:9",
 };
 
 export function buildPrompt(style: CreativeStyle, context: PromptContext): string {
   const colors = colorMap[context.colors[0]] || colorMap["Azul e Branco"];
   const scene = toneToScene[context.tone] || toneToScene["Profissional e Sério"];
   const textPos = context.textPosition === "top" ? "top" : "bottom";
-  const textPosition = `${textPos} area of the composition — leave this area clean with darker/contrasting background for text readability`;
-  const aspect = formatToAspect[context.format] || "square";
-
+  const textPosition = `${textPos} — leave this zone very clean with high contrast dark/light area for legible text`;
+  const format = formatToAspect[context.format] || "square";
   const audience = context.targetAudience;
 
   let prompt = style.promptTemplate
-    .replace("{scene}", `${scene}. ${aspect}`)
+    .replace("{scene}", `${scene}`)
+    .replace("{format}", format)
     .replace("{textPosition}", textPosition)
     .replace("{productName}", context.productName)
     .replace("{audience}", audience)
@@ -194,18 +146,25 @@ export function buildPrompt(style: CreativeStyle, context: PromptContext): strin
     .replace(/\{color2\}/g, colors.color2)
     .replace(/\{color3\}/g, colors.color3);
 
-  prompt += `\nProduct type: ${context.productType}.`;
+  // Add product type and additional context
+  prompt += ` Product: ${context.productType}.`;
 
   if (context.additionalInfo && context.additionalInfo.toLowerCase() !== "não") {
-    prompt += ` Additional context: ${context.additionalInfo}.`;
+    prompt += ` Campaign detail: ${context.additionalInfo}.`;
   }
 
-  // Generate clean base image — text will be overlaid via canvas
-  prompt += `\n\nIMPORTANT: Do NOT include any text, letters, words, numbers, or typography in the image. The image should be purely visual with a clean area reserved at the ${textPos} for text overlay to be added later in post-production. No text whatsoever.`;
+  // Marketing copy alignment — image must match the message
+  prompt += `\n\nThe visual MUST convey: "${context.headline}" — ${context.subheadline}. The composition, mood, subject, and color should reinforce this exact message for the target audience: ${context.targetAudience}.`;
+
+  // Quality boost
+  prompt += `\n\nQuality: ultra-detailed, 8k resolution, professional color grading, award-winning commercial photography, perfectly composed, no distortion, photorealistic quality, publishable advertising visual.`;
+
+  // No text in image — overlaid separately
+  prompt += `\n\nCRITICAL: Do NOT include any text, words, letters, numbers, or typography anywhere in the image. Leave the ${textPos} zone clean with high contrast for text overlay.`;
 
   return prompt;
 }
 
 export function buildNegativePrompt(style: CreativeStyle): string {
-  return style.negativePrompt + ", text, letters, words, numbers, typography, watermark, signature";
+  return style.negativePrompt + ", text, letters, words, numbers, typography, watermark, signature, logo, UI elements";
 }

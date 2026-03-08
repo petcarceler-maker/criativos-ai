@@ -18,8 +18,7 @@ function wrapText(
 
   for (const word of words) {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && currentLine) {
+    if (ctx.measureText(testLine).width > maxWidth && currentLine) {
       lines.push(currentLine);
       currentLine = word;
     } else {
@@ -28,6 +27,27 @@ function wrapText(
   }
   if (currentLine) lines.push(currentLine);
   return lines;
+}
+
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 export function applyTextOverlay(
@@ -48,130 +68,148 @@ export function applyTextOverlay(
         return;
       }
 
-      // Draw base image scaled to fill
+      // --- Draw base image ---
       ctx.drawImage(img, 0, 0, dims.width, dims.height);
 
-      const padding = dims.width * 0.08;
-      const maxTextWidth = dims.width - padding * 2;
+      const W = dims.width;
+      const H = dims.height;
       const isTop = overlay.textPosition === "top";
+      const pad = Math.round(W * 0.07);
+      const maxTextW = W - pad * 2;
 
-      // Calculate text sizes relative to canvas
-      const headlineSize = Math.round(dims.width * 0.065);
-      const subheadlineSize = Math.round(dims.width * 0.035);
-      const ctaSize = Math.round(dims.width * 0.032);
-      const ctaPaddingX = Math.round(dims.width * 0.04);
-      const ctaPaddingY = Math.round(dims.width * 0.018);
-      const lineSpacing = 1.3;
+      // --- Typography scale ---
+      const headlineSize = Math.round(W * 0.068);
+      const subSize = Math.round(W * 0.033);
+      const ctaSize = Math.round(W * 0.030);
+      const lineH = 1.25;
+      const gap = Math.round(W * 0.018);
+      const ctaBtnPadX = Math.round(W * 0.045);
+      const ctaBtnPadY = Math.round(W * 0.016);
 
-      // Measure all text to calculate overlay height
-      ctx.font = `bold ${headlineSize}px "Inter", "Helvetica Neue", Arial, sans-serif`;
-      const headlineLines = wrapText(ctx, overlay.headline, maxTextWidth);
+      // --- Measure text ---
+      ctx.font = `900 ${headlineSize}px "Helvetica Neue", Arial, sans-serif`;
+      const headLines = wrapText(ctx, overlay.headline || "", maxTextW);
 
-      ctx.font = `${subheadlineSize}px "Inter", "Helvetica Neue", Arial, sans-serif`;
-      const subheadlineLines = wrapText(ctx, overlay.subheadline, maxTextWidth);
+      ctx.font = `400 ${subSize}px "Helvetica Neue", Arial, sans-serif`;
+      const subLines = wrapText(ctx, overlay.subheadline || "", maxTextW);
 
-      const totalTextHeight =
-        headlineLines.length * headlineSize * lineSpacing +
-        subheadlineLines.length * subheadlineSize * lineSpacing +
-        (overlay.cta ? ctaSize + ctaPaddingY * 2 + dims.width * 0.03 : 0) +
-        dims.width * 0.04; // spacing between elements
+      ctx.font = `700 ${ctaSize}px "Helvetica Neue", Arial, sans-serif`;
+      const ctaMetrics = ctx.measureText(overlay.cta || "");
+      const ctaBtnW = ctaMetrics.width + ctaBtnPadX * 2;
+      const ctaBtnH = ctaSize + ctaBtnPadY * 2;
 
-      const overlayHeight = totalTextHeight + padding * 2;
+      const blockH =
+        headLines.length * headlineSize * lineH +
+        gap +
+        subLines.length * subSize * lineH +
+        (overlay.cta ? gap * 2.5 + ctaBtnH : 0);
 
-      // Draw semi-transparent background
-      const gradientY = isTop ? 0 : dims.height - overlayHeight;
-      const gradient = ctx.createLinearGradient(0, gradientY, 0, gradientY + overlayHeight);
+      const gradientCoverage = Math.max(blockH + pad * 3, H * 0.38);
+
+      // --- Gradient overlay ---
+      const gY = isTop ? 0 : H - gradientCoverage;
+      const gradient = ctx.createLinearGradient(0, gY, 0, gY + gradientCoverage);
       if (isTop) {
-        gradient.addColorStop(0, "rgba(0, 0, 0, 0.75)");
-        gradient.addColorStop(0.8, "rgba(0, 0, 0, 0.5)");
-        gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+        gradient.addColorStop(0, "rgba(0,0,0,0.82)");
+        gradient.addColorStop(0.55, "rgba(0,0,0,0.60)");
+        gradient.addColorStop(0.85, "rgba(0,0,0,0.20)");
+        gradient.addColorStop(1, "rgba(0,0,0,0)");
       } else {
-        gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
-        gradient.addColorStop(0.2, "rgba(0, 0, 0, 0.5)");
-        gradient.addColorStop(1, "rgba(0, 0, 0, 0.75)");
+        gradient.addColorStop(0, "rgba(0,0,0,0)");
+        gradient.addColorStop(0.15, "rgba(0,0,0,0.20)");
+        gradient.addColorStop(0.45, "rgba(0,0,0,0.60)");
+        gradient.addColorStop(1, "rgba(0,0,0,0.85)");
       }
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, gradientY, dims.width, overlayHeight);
+      ctx.fillRect(0, gY, W, gradientCoverage);
 
-      // Starting Y position for text
-      let currentY: number;
-      if (isTop) {
-        currentY = padding + headlineSize;
-      } else {
-        currentY = dims.height - overlayHeight + padding + headlineSize;
-      }
+      // --- Accent line ---
+      const accentH = Math.max(3, Math.round(W * 0.004));
+      const accentW = Math.round(W * 0.12);
+      const accentY = isTop
+        ? pad * 0.8
+        : H - gradientCoverage + pad * 0.8;
 
-      // Draw headline
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillRect(pad, accentY, accentW, accentH);
+
+      // --- Starting Y for text block ---
+      let curY = isTop
+        ? accentY + accentH + Math.round(W * 0.022) + headlineSize
+        : H - blockH - pad;
+
+      // --- Headline ---
+      ctx.shadowColor = "rgba(0,0,0,0.55)";
+      ctx.shadowBlur = Math.round(W * 0.012);
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = Math.round(W * 0.003);
       ctx.fillStyle = "#FFFFFF";
-      ctx.font = `bold ${headlineSize}px "Inter", "Helvetica Neue", Arial, sans-serif`;
-      ctx.textAlign = "center";
-      const centerX = dims.width / 2;
-
-      // Text shadow for readability
-      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-
-      for (const line of headlineLines) {
-        ctx.fillText(line, centerX, currentY);
-        currentY += headlineSize * lineSpacing;
+      ctx.font = `900 ${headlineSize}px "Helvetica Neue", Arial, sans-serif`;
+      ctx.textAlign = "left";
+      for (const line of headLines) {
+        ctx.fillText(line, pad, curY);
+        curY += headlineSize * lineH;
       }
 
-      // Spacing between headline and subheadline
-      currentY += dims.width * 0.01;
+      curY += gap;
 
-      // Draw subheadline
-      ctx.font = `${subheadlineSize}px "Inter", "Helvetica Neue", Arial, sans-serif`;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-      ctx.shadowBlur = 4;
-
-      for (const line of subheadlineLines) {
-        ctx.fillText(line, centerX, currentY);
-        currentY += subheadlineSize * lineSpacing;
+      // --- Subheadline ---
+      ctx.shadowBlur = Math.round(W * 0.006);
+      ctx.shadowOffsetY = Math.round(W * 0.002);
+      ctx.fillStyle = "rgba(235,235,235,0.88)";
+      ctx.font = `400 ${subSize}px "Helvetica Neue", Arial, sans-serif`;
+      for (const line of subLines) {
+        ctx.fillText(line, pad, curY);
+        curY += subSize * lineH;
       }
 
-      // Draw CTA button
+      // --- CTA Button ---
       if (overlay.cta) {
-        currentY += dims.width * 0.025;
-
-        ctx.font = `bold ${ctaSize}px "Inter", "Helvetica Neue", Arial, sans-serif`;
-        const ctaMetrics = ctx.measureText(overlay.cta);
-        const btnWidth = ctaMetrics.width + ctaPaddingX * 2;
-        const btnHeight = ctaSize + ctaPaddingY * 2;
-        const btnX = centerX - btnWidth / 2;
-        const btnY = currentY - ctaSize * 0.2;
-
-        // Reset shadow for button
-        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-        ctx.shadowBlur = 6;
+        curY += gap * 2;
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = Math.round(W * 0.01);
         ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 3;
+        ctx.shadowOffsetY = Math.round(W * 0.003);
 
-        // Button background with rounded corners
-        const radius = btnHeight * 0.35;
-        ctx.beginPath();
-        ctx.moveTo(btnX + radius, btnY);
-        ctx.lineTo(btnX + btnWidth - radius, btnY);
-        ctx.quadraticCurveTo(btnX + btnWidth, btnY, btnX + btnWidth, btnY + radius);
-        ctx.lineTo(btnX + btnWidth, btnY + btnHeight - radius);
-        ctx.quadraticCurveTo(btnX + btnWidth, btnY + btnHeight, btnX + btnWidth - radius, btnY + btnHeight);
-        ctx.lineTo(btnX + radius, btnY + btnHeight);
-        ctx.quadraticCurveTo(btnX, btnY + btnHeight, btnX, btnY + btnHeight - radius);
-        ctx.lineTo(btnX, btnY + radius);
-        ctx.quadraticCurveTo(btnX, btnY, btnX + radius, btnY);
-        ctx.closePath();
-        ctx.fillStyle = "#7C3AED"; // brand purple
+        const btnX = pad;
+        const btnY = curY - ctaSize * 0.85;
+        const btnR = ctaBtnH * 0.42;
+
+        // Button gradient fill
+        const btnGrad = ctx.createLinearGradient(btnX, btnY, btnX, btnY + ctaBtnH);
+        btnGrad.addColorStop(0, "#9B5CF6");
+        btnGrad.addColorStop(1, "#6D28D9");
+
+        drawRoundedRect(ctx, btnX, btnY, ctaBtnW, ctaBtnH, btnR);
+        ctx.fillStyle = btnGrad;
         ctx.fill();
 
-        // Button text
+        // Subtle top highlight on button
         ctx.shadowColor = "transparent";
         ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
+        const highlightGrad = ctx.createLinearGradient(btnX, btnY, btnX, btnY + ctaBtnH * 0.5);
+        highlightGrad.addColorStop(0, "rgba(255,255,255,0.18)");
+        highlightGrad.addColorStop(1, "rgba(255,255,255,0)");
+        drawRoundedRect(ctx, btnX, btnY, ctaBtnW, ctaBtnH, btnR);
+        ctx.fillStyle = highlightGrad;
+        ctx.fill();
+
+        // CTA text
         ctx.fillStyle = "#FFFFFF";
-        ctx.textAlign = "center";
-        ctx.fillText(overlay.cta, centerX, btnY + btnHeight / 2 + ctaSize * 0.35);
+        ctx.font = `700 ${ctaSize}px "Helvetica Neue", Arial, sans-serif`;
+        ctx.textAlign = "left";
+        const ctaTextX = btnX + ctaBtnPadX;
+        const ctaTextY = btnY + ctaBtnH / 2 + ctaSize * 0.36;
+        ctx.fillText(overlay.cta, ctaTextX, ctaTextY);
+
+        // Arrow indicator
+        const arrowSize = ctaSize * 0.65;
+        const arrowX = btnX + ctaBtnW - ctaBtnPadX * 0.6;
+        const arrowY = btnY + ctaBtnH / 2;
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.font = `700 ${arrowSize}px "Helvetica Neue", Arial, sans-serif`;
+        ctx.textAlign = "right";
+        ctx.fillText("→", arrowX, arrowY + arrowSize * 0.35);
       }
 
       resolve(canvas.toDataURL("image/png"));
