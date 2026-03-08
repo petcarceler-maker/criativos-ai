@@ -9,6 +9,7 @@ import { applyTextOverlay } from "@/lib/canvas-overlay";
 import { saveCreatives } from "@/lib/image-store";
 import ChatBubble from "@/components/ChatBubble";
 import TypingIndicator from "@/components/TypingIndicator";
+import PromptExtractor from "@/components/PromptExtractor";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -464,6 +465,7 @@ export default function ChatPage() {
 
   return (
     <div className="h-screen flex flex-col bg-surface">
+      <PromptExtractor />
       {/* Header */}
       <header className="border-b border-surface-border bg-surface/80 backdrop-blur-md">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
