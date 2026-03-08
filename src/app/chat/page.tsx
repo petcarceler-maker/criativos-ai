@@ -239,38 +239,53 @@ export default function ChatPage() {
         };
 
         setTimeout(async () => {
-          const result = await generateCreativesWithAI(completeBriefing);
+          try {
+            const result = await generateCreativesWithAI(completeBriefing);
 
-          setCurrentStep("done");
-          setIsDone(true);
-
-          if (result.generated.length > 0) {
-            const errorNote = result.errors.length > 0
-              ? `\n\n⚠ ${result.errors.length} imagem(ns) falharam: ${result.errors[0]}`
-              : "";
+            if (result.generated.length > 0) {
+              const errorNote = result.errors.length > 0
+                ? `\n\n⚠ ${result.errors.length} imagem(ns) falharam: ${result.errors[0]}`
+                : "";
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `msg-${Date.now()}`,
+                  role: "assistant",
+                  content: `Pronto! Foram gerados **${result.generated.length} criativos** com sucesso! No dashboard você pode **editar o texto, posição e baixar** cada criativo.${errorNote}`,
+                  images: result.generated.slice(0, 4),
+                },
+              ]);
+            } else {
+              const errorDetail = result.errors.length > 0
+                ? `\n\n**Erro:** ${result.errors[0]}`
+                : "\n\nVerifique se a GEMINI_API_KEY está configurada corretamente.";
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `msg-${Date.now()}`,
+                  role: "assistant",
+                  content: `Houve um problema na geração dos criativos.${errorDetail}`,
+                },
+              ]);
+            }
+          } catch (err) {
+            console.error("Erro fatal na geração:", err);
+            const errorMsg = err instanceof Error ? err.message : "Erro desconhecido";
             setMessages((prev) => [
               ...prev,
               {
                 id: `msg-${Date.now()}`,
                 role: "assistant",
-                content: `Pronto! Foram gerados **${result.generated.length} criativos** com sucesso! No dashboard você pode **editar o texto, posição e baixar** cada criativo.${errorNote}`,
-                images: result.generated.slice(0, 4),
+                content: `Erro na geração dos criativos: **${errorMsg}**\n\nVerifique se a GEMINI_API_KEY está configurada corretamente nas variáveis de ambiente da Vercel.`,
               },
             ]);
-          } else {
-            const errorDetail = result.errors.length > 0
-              ? `\n\n**Erro:** ${result.errors[0]}`
-              : "\n\nVerifique se a GEMINI_API_KEY está configurada corretamente.";
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `msg-${Date.now()}`,
-                role: "assistant",
-                content: `Houve um problema na geração dos criativos.${errorDetail}`,
-              },
-            ]);
+            setIsGenerating(false);
+            setGenerationProgress("");
+          } finally {
+            setCurrentStep("done");
+            setIsDone(true);
+            scrollToBottom();
           }
-          scrollToBottom();
         }, 1500);
         return;
       }

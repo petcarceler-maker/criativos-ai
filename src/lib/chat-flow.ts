@@ -150,8 +150,7 @@ export const chatSteps: Record<ChatStep, StepConfig> = {
     nextStep: "done",
   },
   done: {
-    message:
-      "Seus criativos foram gerados com sucesso! Clique no botão abaixo para visualizá-los.",
+    message: "Geração finalizada.",
     nextStep: "done",
   },
 };

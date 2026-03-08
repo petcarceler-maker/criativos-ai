@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const imagePrompt = `${prompt}\n\nIMPORTANT: Generate an image with aspect ratio ${aspectRatio}. Output ONLY the image, no text.`;
 
     const response = await genAI.models.generateContent({
-      model: "gemini-2.0-flash-exp-image-generation",
+      model: "gemini-2.5-flash-image",
       contents: imagePrompt,
       config: {
         responseModalities: ["TEXT", "IMAGE"],
