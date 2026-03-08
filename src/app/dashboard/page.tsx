@@ -56,10 +56,29 @@ export default function DashboardPage() {
   };
 
   const handleDownload = (creative: GeneratedImage) => {
-    const link = document.createElement("a");
-    link.download = `${creative.styleLabel}-${creative.format}-${creative.id}.png`;
-    link.href = creative.image;
-    link.click();
+    try {
+      // Convert data URL to Blob for reliable download of large images
+      const byteString = atob(creative.image.split(",")[1]);
+      const mimeType = creative.image.split(",")[0].split(":")[1].split(";")[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${creative.styleLabel}-${creative.format}-${creative.id}.png`;
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      // Fallback to direct data URL
+      const link = document.createElement("a");
+      link.download = `${creative.styleLabel}-${creative.format}-${creative.id}.png`;
+      link.href = creative.image;
+      link.click();
+    }
   };
 
   const handleSaveEdit = (updated: GeneratedImage) => {

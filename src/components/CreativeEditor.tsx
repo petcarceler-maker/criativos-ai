@@ -45,10 +45,27 @@ export default function CreativeEditor({ creative, onClose, onSave }: CreativeEd
   };
 
   const handleDownload = () => {
-    const link = document.createElement("a");
-    link.download = `${creative.styleLabel}-${creative.format}-edited.png`;
-    link.href = previewImage;
-    link.click();
+    try {
+      const byteString = atob(previewImage.split(",")[1]);
+      const mimeType = previewImage.split(",")[0].split(":")[1].split(";")[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${creative.styleLabel}-${creative.format}-edited.png`;
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      const link = document.createElement("a");
+      link.download = `${creative.styleLabel}-${creative.format}-edited.png`;
+      link.href = previewImage;
+      link.click();
+    }
   };
 
   const handleReset = () => {

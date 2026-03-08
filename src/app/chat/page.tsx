@@ -113,6 +113,13 @@ export default function ChatPage() {
               body: JSON.stringify({ styleId, briefing: completeBriefing, format }),
             });
 
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+              errors.push(errData.error || `Erro HTTP ${res.status}`);
+              console.error(`Erro ${styleId}/${format}:`, errData.error);
+              continue;
+            }
+
             const data = await res.json();
             if (data.image) {
               // Apply text overlay via canvas
@@ -238,25 +245,28 @@ export default function ChatPage() {
           setIsDone(true);
 
           if (result.generated.length > 0) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `msg-${Date.now()}`,
-                role: "assistant",
-                content: `Pronto! Foram gerados **${result.generated.length} criativos** com sucesso! No dashboard você pode **editar o texto, posição e baixar** cada criativo.`,
-                images: result.generated.slice(0, 4),
-              },
-            ]);
-          } else {
-            const errorDetail = result.errors.length > 0
-              ? `\n\nErro: ${result.errors[0]}`
+            const errorNote = result.errors.length > 0
+              ? `\n\n⚠ ${result.errors.length} imagem(ns) falharam: ${result.errors[0]}`
               : "";
             setMessages((prev) => [
               ...prev,
               {
                 id: `msg-${Date.now()}`,
                 role: "assistant",
-                content: `Houve um problema na geração.${errorDetail}`,
+                content: `Pronto! Foram gerados **${result.generated.length} criativos** com sucesso! No dashboard você pode **editar o texto, posição e baixar** cada criativo.${errorNote}`,
+                images: result.generated.slice(0, 4),
+              },
+            ]);
+          } else {
+            const errorDetail = result.errors.length > 0
+              ? `\n\n**Erro:** ${result.errors[0]}`
+              : "\n\nVerifique se a GEMINI_API_KEY está configurada corretamente.";
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `msg-${Date.now()}`,
+                role: "assistant",
+                content: `Houve um problema na geração dos criativos.${errorDetail}`,
               },
             ]);
           }

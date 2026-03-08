@@ -51,10 +51,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const parts = response.candidates?.[0]?.content?.parts || [];
+    if (!response.candidates || response.candidates.length === 0) {
+      console.error("Resposta Gemini sem candidates:", JSON.stringify(response).slice(0, 500));
+      return NextResponse.json({ error: "A API não retornou nenhum resultado. Verifique se o modelo suporta geração de imagens." }, { status: 500 });
+    }
+
+    const parts = response.candidates[0]?.content?.parts || [];
     const imagePart = parts.find((p: { inlineData?: { data?: string; mimeType?: string } }) => p.inlineData?.data);
     if (!imagePart || !imagePart.inlineData) {
-      return NextResponse.json({ error: "Nenhuma imagem gerada" }, { status: 500 });
+      const textParts = parts.filter((p: { text?: string }) => p.text).map((p: { text?: string }) => p.text).join(" ");
+      console.error("Nenhuma imagem nos parts. Texto retornado:", textParts);
+      return NextResponse.json({ error: `Nenhuma imagem gerada. Resposta da API: ${textParts || "vazia"}` }, { status: 500 });
     }
 
     const base64Image = imagePart.inlineData.data;
