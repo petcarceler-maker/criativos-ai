@@ -33,6 +33,12 @@ export default function HomePage() {
             </Link>
             <Link
               href="/chat"
+              className="text-sm text-text-secondary hover:text-text-primary transition"
+            >
+              Chat
+            </Link>
+            <Link
+              href="/criar"
               className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
             >
               Criar Agora
