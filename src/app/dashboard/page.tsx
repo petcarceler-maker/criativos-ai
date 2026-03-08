@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { GeneratedImage } from "@/types";
 import CreativeEditor from "@/components/CreativeEditor";
+import { loadCreatives, clearCreatives, updateCreative, migrateFromLocalStorage } from "@/lib/image-store";
 
 type FormatFilter = "all" | "feed" | "story" | "banner" | "wide";
 
@@ -35,11 +36,12 @@ export default function DashboardPage() {
   const [editingImage, setEditingImage] = useState<GeneratedImage | null>(null);
 
   useEffect(() => {
-    const data = JSON.parse(
-      localStorage.getItem("criativos-ai-generated") || "[]"
-    );
-    setCreatives(data);
-    setLoaded(true);
+    (async () => {
+      await migrateFromLocalStorage();
+      const data = await loadCreatives();
+      setCreatives(data);
+      setLoaded(true);
+    })();
   }, []);
 
   const filtered =
@@ -48,9 +50,9 @@ export default function DashboardPage() {
   const styles = [...new Set(creatives.map((c) => c.styleLabel))];
   const formats = [...new Set(creatives.map((c) => c.format))];
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (confirm("Tem certeza que deseja apagar todos os criativos?")) {
-      localStorage.removeItem("criativos-ai-generated");
+      await clearCreatives();
       setCreatives([]);
     }
   };
@@ -81,12 +83,12 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSaveEdit = (updated: GeneratedImage) => {
+  const handleSaveEdit = async (updated: GeneratedImage) => {
     const newCreatives = creatives.map((c) =>
       c.id === updated.id ? updated : c
     );
     setCreatives(newCreatives);
-    localStorage.setItem("criativos-ai-generated", JSON.stringify(newCreatives));
+    await updateCreative(updated);
     setEditingImage(null);
   };
 

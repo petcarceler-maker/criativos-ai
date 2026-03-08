@@ -6,6 +6,7 @@ import { Sparkles, Send, ArrowRight, Loader2, Check } from "lucide-react";
 import { ChatMessage, ChatStep, BriefingData, GeneratedImage, TextOverlay } from "@/types";
 import { chatSteps, formatBriefingSummary, mapStyleLabelsToIds, mapFormatLabelsToIds, parseQuantity } from "@/lib/chat-flow";
 import { applyTextOverlay } from "@/lib/canvas-overlay";
+import { saveCreatives } from "@/lib/image-store";
 import ChatBubble from "@/components/ChatBubble";
 import TypingIndicator from "@/components/TypingIndicator";
 
@@ -156,13 +157,13 @@ export default function ChatPage() {
     setIsGenerating(false);
     setGenerationProgress("");
 
-    // Salvar no localStorage
-    if (typeof window !== "undefined") {
-      const existing = JSON.parse(localStorage.getItem("criativos-ai-generated") || "[]");
-      localStorage.setItem(
-        "criativos-ai-generated",
-        JSON.stringify([...existing, ...allGenerated])
-      );
+    // Salvar no IndexedDB
+    if (allGenerated.length > 0) {
+      try {
+        await saveCreatives(allGenerated);
+      } catch (e) {
+        console.error("Erro ao salvar criativos:", e);
+      }
     }
 
     return { generated: allGenerated, errors };
