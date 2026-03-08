@@ -46,32 +46,28 @@ export async function POST(request: NextRequest) {
     const prompt = buildPrompt(style, { ...briefing, format });
     const dimensions = formatDimensions[format];
 
-    // Usar Gemini com Imagen 3 para gerar a imagem
-    const response = await genAI.models.generateImages({
-      model: "imagen-4.0-generate-001",
-      prompt,
+    // Usar Gemini 2.5 Flash com geração nativa de imagens
+    const aspectRatio = getAspectRatio(format);
+    const imagePrompt = `${prompt}\n\nIMPORTANT: Generate an image with aspect ratio ${aspectRatio}. Output ONLY the image, no text.`;
+
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.5-flash-preview-04-17",
+      contents: imagePrompt,
       config: {
-        numberOfImages: 1,
-        aspectRatio: getAspectRatio(format),
+        responseModalities: ["IMAGE"],
       },
     });
 
-    if (!response.generatedImages || response.generatedImages.length === 0) {
+    const part = response.candidates?.[0]?.content?.parts?.[0];
+    if (!part || !part.inlineData) {
       return NextResponse.json({ error: "Nenhuma imagem gerada" }, { status: 500 });
     }
 
-    const imageBytes = response.generatedImages[0].image?.imageBytes;
-    if (!imageBytes) {
-      return NextResponse.json({ error: "Imagem sem dados" }, { status: 500 });
-    }
-
-    // Retornar imagem como base64
-    const base64Image = typeof imageBytes === "string"
-      ? imageBytes
-      : Buffer.from(imageBytes).toString("base64");
+    const base64Image = part.inlineData.data;
+    const mimeType = part.inlineData.mimeType || "image/png";
 
     return NextResponse.json({
-      image: `data:image/png;base64,${base64Image}`,
+      image: `data:${mimeType};base64,${base64Image}`,
       prompt,
       style: style.label,
       format,

@@ -65,27 +65,28 @@ export async function POST(request: NextRequest) {
         try {
           const prompt = buildPrompt(style, { ...briefing, format });
 
-          const response = await genAI.models.generateImages({
-            model: "imagen-4.0-generate-001",
-            prompt,
+          const aspectRatio = getAspectRatio(format);
+          const imagePrompt = `${prompt}\n\nIMPORTANT: Generate an image with aspect ratio ${aspectRatio}. Output ONLY the image, no text.`;
+
+          const response = await genAI.models.generateContent({
+            model: "gemini-2.5-flash-preview-04-17",
+            contents: imagePrompt,
             config: {
-              numberOfImages: 1,
-              aspectRatio: getAspectRatio(format),
+              responseModalities: ["IMAGE"],
             },
           });
 
-          const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
-          if (imageBytes) {
-            const base64 = typeof imageBytes === "string"
-              ? imageBytes
-              : Buffer.from(imageBytes).toString("base64");
+          const part = response.candidates?.[0]?.content?.parts?.[0];
+          if (part?.inlineData) {
+            const base64 = part.inlineData.data;
+            const mimeType = part.inlineData.mimeType || "image/png";
 
             results.push({
               id: `gen-${Date.now()}-${styleId}-${format}`,
               styleId,
               styleLabel: style.label,
               format,
-              image: `data:image/png;base64,${base64}`,
+              image: `data:${mimeType};base64,${base64}`,
               prompt,
             });
           }
