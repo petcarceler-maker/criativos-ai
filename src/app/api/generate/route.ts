@@ -51,20 +51,21 @@ export async function POST(request: NextRequest) {
     const imagePrompt = `${prompt}\n\nIMPORTANT: Generate an image with aspect ratio ${aspectRatio}. Output ONLY the image, no text.`;
 
     const response = await genAI.models.generateContent({
-      model: "gemini-2.5-flash-preview-04-17",
+      model: "gemini-2.0-flash-exp-image-generation",
       contents: imagePrompt,
       config: {
-        responseModalities: ["IMAGE"],
+        responseModalities: ["TEXT", "IMAGE"],
       },
     });
 
-    const part = response.candidates?.[0]?.content?.parts?.[0];
-    if (!part || !part.inlineData) {
+    const parts = response.candidates?.[0]?.content?.parts || [];
+    const imagePart = parts.find((p: { inlineData?: { data?: string; mimeType?: string } }) => p.inlineData?.data);
+    if (!imagePart || !imagePart.inlineData) {
       return NextResponse.json({ error: "Nenhuma imagem gerada" }, { status: 500 });
     }
 
-    const base64Image = part.inlineData.data;
-    const mimeType = part.inlineData.mimeType || "image/png";
+    const base64Image = imagePart.inlineData.data;
+    const mimeType = imagePart.inlineData.mimeType || "image/png";
 
     return NextResponse.json({
       image: `data:${mimeType};base64,${base64Image}`,
