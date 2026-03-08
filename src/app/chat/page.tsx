@@ -461,7 +461,8 @@ export default function ChatPage() {
   const hasOptions = lastMessage?.options;
   const showMultiSelectConfirm = isMultiSelectStep(currentStep) && multiSelected.length > 0;
   const isCurrentUploadStep = isUploadStep(currentStep);
-  const showTextInput = !isDone && !isGenerating && !hasOptions && !isMultiSelectStep(currentStep) && !isCurrentUploadStep;
+  const isTextWithSkipStep = currentStep === "customPrompt";
+  const showTextInput = !isDone && !isGenerating && (!hasOptions || isTextWithSkipStep) && !isMultiSelectStep(currentStep) && !isCurrentUploadStep;
 
   return (
     <div className="h-screen flex flex-col bg-surface">
@@ -500,6 +501,8 @@ export default function ChatPage() {
                   options: isMultiSelectStep(currentStep) && msg === lastMessage
                     ? undefined
                     : isCurrentUploadStep && msg === lastMessage
+                    ? undefined
+                    : isTextWithSkipStep && msg === lastMessage
                     ? undefined
                     : msg.options,
                 }}
@@ -669,7 +672,7 @@ export default function ChatPage() {
       {/* Input */}
       {showTextInput && (
         <div className="border-t border-surface-border bg-surface/80 backdrop-blur-md">
-          <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="max-w-3xl mx-auto px-4 py-3 space-y-2">
             <div className="flex items-center gap-2 bg-surface-lighter border border-surface-border rounded-xl px-4 py-2 focus-within:border-brand-600/50 transition">
               <input
                 ref={inputRef}
@@ -677,7 +680,7 @@ export default function ChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Digite sua resposta..."
+                placeholder={isTextWithSkipStep ? "Descreva o que quer ver no criativo..." : "Digite sua resposta..."}
                 className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none"
                 disabled={isTyping}
               />
@@ -689,6 +692,14 @@ export default function ChatPage() {
                 <Send className="w-4 h-4 text-white" />
               </button>
             </div>
+            {isTextWithSkipStep && (
+              <button
+                onClick={() => handleOptionClick("Pular")}
+                className="text-xs text-text-muted hover:text-text-secondary transition"
+              >
+                Pular — usar prompt automático
+              </button>
+            )}
           </div>
         </div>
       )}
